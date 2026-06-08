@@ -11,6 +11,7 @@ import {
   Pause,
   Play,
 } from "lucide-react";
+import { MailingListForm } from "./mailing-list-form";
 
 const GRID_SIZE = 20;
 const CELL_SIZE = 20;
@@ -219,7 +220,14 @@ export function SnakeGame() {
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+
       if (gameOver) {
+        // Ignore enter key press when focused on input to allow form submission
+        if (e.key == "Enter" && target?.nodeName === "INPUT") {
+          return;
+        }
+
         if (e.key === " " || e.key === "Enter") {
           resetGame();
         }
@@ -350,6 +358,7 @@ export function SnakeGame() {
                       Final Score:{" "}
                       <span className="text-primary">{score}</span>
                     </p>
+                    <MailingListForm />
                   </>
                 ) : isPaused ? (
                   <h2 className="text-3xl font-mono font-bold text-foreground">
