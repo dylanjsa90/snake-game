@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/auth-context";
+import { fetchService, ApiError, SNAKE_GAME } from "@/services/fetch";
 import { Button } from "@/components/ui/button";
 import {
   ArrowUp,
@@ -33,7 +36,11 @@ const getRandomPosition = (snake: Position[]): Position => {
   return position;
 };
 
+type SubmitStatus = "idle" | "submitting" | "success" | "limit" | "error";
+
 export function SnakeGame() {
+  const { token, user } = useAuth();
+  const [submitStatus, setSubmitStatus] = useState<SubmitStatus>("idle");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [snake, setSnake] = useState<Position[]>([{ x: 10, y: 10 }]);
   const [food, setFood] = useState<Position>({ x: 15, y: 15 });
@@ -280,6 +287,25 @@ export function SnakeGame() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [gameOver, gameStarted, resetGame]);
 
+  // Submit the final score to the leaderboard when an authenticated user's
+  // game ends. The backend caps submissions at 5/game/day (429 on overflow).
+  useEffect(() => {
+    if (!gameOver) {
+      setSubmitStatus("idle");
+      return;
+    }
+    if (!token || !user || score <= 0) return;
+    setSubmitStatus("submitting");
+    fetchService
+      .submitScore({ game: SNAKE_GAME, score })
+      .then(() => setSubmitStatus("success"))
+      .catch((err) =>
+        setSubmitStatus(
+          err instanceof ApiError && err.status === 429 ? "limit" : "error"
+        )
+      );
+  }, [gameOver, score, user]);
+
   const handleDirectionChange = (newDirection: Direction) => {
     if (gameOver || isPaused) return;
 
@@ -358,6 +384,30 @@ export function SnakeGame() {
                       Final Score:{" "}
                       <span className="text-primary">{score}</span>
                     </p>
+                    {!token ? (
+                      <p className="text-sm font-mono text-muted-foreground">
+                        <Link to="/login" className="text-primary underline">
+                          Log in
+                        </Link>{" "}
+                        to save your score to the leaderboard
+                      </p>
+                    ) : submitStatus === "submitting" ? (
+                      <p className="text-sm font-mono text-muted-foreground">
+                        Saving score…
+                      </p>
+                    ) : submitStatus === "success" ? (
+                      <p className="text-sm font-mono text-primary">
+                        Score saved to the leaderboard!
+                      </p>
+                    ) : submitStatus === "limit" ? (
+                      <p className="text-sm font-mono text-muted-foreground">
+                        Daily limit reached — score not saved.
+                      </p>
+                    ) : submitStatus === "error" ? (
+                      <p className="text-sm font-mono text-destructive">
+                        Couldn&apos;t save score. Try again later.
+                      </p>
+                    ) : null}
                     <MailingListForm />
                   </>
                 ) : isPaused ? (

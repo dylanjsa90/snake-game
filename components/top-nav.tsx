@@ -13,9 +13,14 @@ export function TopNav() {
 
   return (
     <nav className="border-b px-4 h-14 flex items-center justify-between">
-      <Link to="/" className="font-semibold tracking-tight">
-        Snake Game
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link to="/" className="font-semibold tracking-tight">
+          Snake Game
+        </Link>
+        <Link to="/leaderboard" className="text-sm text-muted-foreground hover:text-foreground">
+          Leaderboard
+        </Link>
+      </div>
       <div className="flex items-center gap-2">
         {user ? (
           <>

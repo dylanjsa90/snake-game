@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
+import { fetchService, ApiError } from '@/services/fetch'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -18,20 +19,16 @@ export function LoginPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        login(data.token, data.user)
-        navigate('/')
+      const token = await fetchService.login({ email, password })
+      const user = await fetchService.getMe(token)
+      login(token, user)
+      navigate('/')
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message || 'Login failed')
       } else {
-        setError(data.error ?? 'Login failed')
+        setError('Could not connect to server')
       }
-    } catch {
-      setError('Could not connect to server')
     } finally {
       setLoading(false)
     }

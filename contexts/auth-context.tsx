@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { fetchService, type AuthUser } from '@/services/fetch'
 
-type User = { id: number; email: string }
+type User = AuthUser
 
 type AuthContextType = {
   user: User | null
@@ -23,15 +24,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false)
       return
     }
-    fetch('/api/auth/me', { headers: { Authorization: `Bearer ${stored}` } })
-      .then(r => r.json())
-      .then(({ user }) => {
-        if (user) {
-          setToken(stored)
-          setUser(user)
-        } else {
-          localStorage.removeItem('token')
-        }
+    fetchService
+      .getMe(stored)
+      .then(user => {
+        setToken(stored)
+        setUser(user)
       })
       .catch(() => localStorage.removeItem('token'))
       .finally(() => setIsLoading(false))

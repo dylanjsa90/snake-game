@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
+import { fetchService, ApiError } from '@/services/fetch'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -9,6 +10,7 @@ export function SignupPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
@@ -23,20 +25,17 @@ export function SignupPage() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        login(data.token, data.user)
-        navigate('/')
+      await fetchService.register({ email, username, password })
+      const token = await fetchService.login({ email, password })
+      const user = await fetchService.getMe(token)
+      login(token, user)
+      navigate('/')
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message || 'Signup failed')
       } else {
-        setError(data.error ?? 'Signup failed')
+        setError('Could not connect to server')
       }
-    } catch {
-      setError('Could not connect to server')
     } finally {
       setLoading(false)
     }
@@ -56,6 +55,17 @@ export function SignupPage() {
               onChange={e => setEmail(e.target.value)}
               required
               autoComplete="email"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              required
+              autoComplete="username"
             />
           </div>
           <div className="space-y-1.5">
